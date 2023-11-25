@@ -11,6 +11,7 @@ public class GimnasioPokemonService {
     @Autowired
     private PokemonRepository pokemonRepository;
     public void agregarPokemon(String name) {
+        //comentario
         Pokemon newPokemon = new Pokemon();
         newPokemon.setName(name);
         newPokemon.setVida(100);
