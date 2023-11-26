@@ -22,14 +22,9 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
 
-      - name: Check and add host key
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ec2-52-14-7-239.us-east-2.compute.amazonaws.com >> ~/.ssh/known_hosts  
-
       - name: Deploy to EC2
         run: |
-          echo "$SSH_PRIVATE_KEY"
+          mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           scp -i ~/.ssh/id_rsa -r ./build/* ec2-user@ec2-52-14-7-239.us-east-2.compute.amazonaws.com:/home/ec2-user/gimnasioDeploy
