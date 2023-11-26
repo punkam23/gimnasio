@@ -24,4 +24,7 @@ jobs:
 
       - name: Deploy to EC2
         run: |
-          scp -i /Users/yehoshuamatamorosvalverde/Downloads/gimnasio.pem -r ./build/* ec2-user@your-ec2-instance-ip:/home/ec2-user/gimnasioDeploy
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          scp -i ~/.ssh/id_rsa -r ./build/* ec2-user@ec2-52-14-7-239.us-east-2.compute.amazonaws.com:/home/ec2-user/gimnasioDeploy
