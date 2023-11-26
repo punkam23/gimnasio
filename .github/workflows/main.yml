@@ -32,5 +32,5 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > /home/runner/.ssh/id_rsa
           chmod 600 /home/runner/.ssh/id_rsa
-          cat /home/runner/.ssh/id_rsa
+          ssh -v -i /home/runner/.ssh/id_rsa ec2-user@ec2-52-14-7-239.us-east-2.compute.amazonaws.com
           scp -i ~/.ssh/id_rsa -r ./build/* ec2-user@ec2-52-14-7-239.us-east-2.compute.amazonaws.com:/home/ec2-user/gimnasioDeploy
