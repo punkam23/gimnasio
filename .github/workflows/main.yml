@@ -23,14 +23,21 @@ jobs:
         run: ./gradlew build
 
       - name: Create SSH directory
-        run: mkdir -p ~/.ssh  
+        run: mkdir -p ~/.ssh
+
+      - name: Set Permissions
+        run: |
+          chmod 700 ~/.ssh
+          chmod 600 ~/.ssh/id_rsa
 
       - name: Install SSH Key
-        run: echo "$PRIVATE_KEY" > ~/.ssh/id_rsa && chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_rsa
+        run: |
+          echo "$PRIVATE_KEY" > ~/.ssh/id_rsa 
+          chmod 600 ~/.ssh/id_rsa
 
       - name: Deploy to EC2   
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@ec2-52-14-7-239.us-east-2.compute.amazonaws.com "echo 'Hello from GitHub Actions!'"
+          ssh -i $HOME/.ssh/id_rsa ec2-user@ec2-52-14-7-239.us-east-2.compute.amazonaws.com "echo 'Hello from GitHub Actions!'"
 
     env:
       PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
