@@ -27,7 +27,7 @@ jobs:
 
       - name: Deploy to EC2   
         run: |
-          ssh -i ~/.ssh/id_rsa user@your-ec2-ip "echo 'Hello from GitHub Actions!'"
+          ssh -i ~/.ssh/id_rsa ec2-user@ec2-52-14-7-239.us-east-2.compute.amazonaws.com "echo 'Hello from GitHub Actions!'"
 
     env:
       PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
