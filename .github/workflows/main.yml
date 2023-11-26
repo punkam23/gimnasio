@@ -34,6 +34,10 @@ jobs:
           echo "$PRIVATE_KEY" > $HOME/.ssh/id_rsa 
           chmod 600 $HOME/.ssh/id_rsa
 
+      - name: Debug
+        run: |
+          ls -la $HOME/.ssh     
+
       - name: Deploy to EC2   
         run: |
           ssh -i $HOME/.ssh/id_rsa ec2-user@ec2-52-14-7-239.us-east-2.compute.amazonaws.com "echo 'Hello from GitHub Actions!'"
