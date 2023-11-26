@@ -29,6 +29,7 @@ jobs:
 
       - name: Deploy to EC2
         run: |
+          echo "SSH Private Key: ${{ secrets.SSH_PRIVATE_KEY }}"
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > /home/runner/.ssh/id_rsa
           chmod 600 /home/runner/.ssh/id_rsa
