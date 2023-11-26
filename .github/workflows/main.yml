@@ -23,17 +23,17 @@ jobs:
         run: ./gradlew build
 
       - name: Create SSH directory
-        run: mkdir -p ~/.ssh
+        run: mkdir -p $HOME/.ssh
 
       - name: Set Permissions
         run: |
-          chmod 700 ~/.ssh
-          chmod 600 ~/.ssh/id_rsa
+          chmod 700 $HOME/.ssh
+          chmod 600 $HOME/.ssh/id_rsa
 
       - name: Install SSH Key
         run: |
-          echo "$PRIVATE_KEY" > ~/.ssh/id_rsa 
-          chmod 600 ~/.ssh/id_rsa
+          echo "$PRIVATE_KEY" > $HOME/.ssh/id_rsa 
+          chmod 600 $HOME/.ssh/id_rsa
 
       - name: Deploy to EC2   
         run: |
