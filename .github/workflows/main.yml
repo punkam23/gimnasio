@@ -28,6 +28,11 @@ jobs:
       - name: Set Permissions
         run: |
           chmod 700 $HOME/.ssh
+          
+      - name: Check and add host key
+        run: |
+          mkdir -p $HOME.ssh
+          ssh-keyscan -H ec2-52-14-7-239.us-east-2.compute.amazonaws.com >> $HOME/.ssh/known_hosts
 
       - name: Install SSH Key
         run: |
