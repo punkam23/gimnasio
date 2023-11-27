@@ -40,7 +40,6 @@ jobs:
 
       - name: Identify and terminate processes on port 8080
         run: |
-          lsof -ti :8080
           lsof -ti :8080 | xargs -r kill -9
           
       - name: Deploy to EC2   
