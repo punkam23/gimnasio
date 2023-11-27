@@ -14,7 +14,7 @@ public class GimnasioPokemonService {
         //comentario
         Pokemon newPokemon = new Pokemon();
         newPokemon.setName(name);
-        newPokemon.setVida(200);
+        newPokemon.setVida(300);
         this.pokemonRepository.save(newPokemon);
 
     }
