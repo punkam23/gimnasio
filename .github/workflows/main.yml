@@ -51,7 +51,7 @@ jobs:
           lsof -ti :8080 | xargs -r kill -9
 
       - name: Execute JAR file
-        run: ssh -i $HOME/.ssh/id_rsa ec2-user@ec2-52-14-7-239.us-east-2.compute.amazonaws.com "java -jar /home/ec2-user/gimnasioDeploy/libs/gimnasioPokemon-0.0.1-SNAPSHOT.jar"
+        run: ssh -i $HOME/.ssh/id_rsa ec2-user@ec2-52-14-7-239.us-east-2.compute.amazonaws.com "nohup java -jar /home/ec2-user/gimnasioDeploy/libs/gimnasioPokemon-0.0.1-SNAPSHOT.jar > output.log 2>&1 &"
         
     env:
       PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
