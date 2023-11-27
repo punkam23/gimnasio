@@ -40,7 +40,7 @@ jobs:
 
       - name: Identify and terminate processes on port 8080
         run: |
-          fuser -k 8080/tcp
+          ssh -i $HOME/.ssh/id_rsa ec2-user@ec2-52-14-7-239.us-east-2.compute.amazonaws.com "fuser -k 8080/tcp"
           
       - name: Deploy to EC2   
         run: |
