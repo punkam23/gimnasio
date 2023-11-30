@@ -1,16 +1,21 @@
 package com.cenfotec.gimnasiopokemon.model;
 
-import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
-@Entity
-@Table(name = "pokemons")
+import java.util.List;
+
 @Data
 public class Pokemon {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @JsonProperty("name")
+    String name;
 
-    private String name;
-    private int vida;
+    @JsonProperty("type")
+    PokemonType type;
+
+    @JsonProperty("vida")
+    int vida;
+
+    @JsonProperty("attacks")
+    List<Attack> attacks;
 }
