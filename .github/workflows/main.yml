@@ -38,6 +38,7 @@ jobs:
 
       - name: Install SSH Key
         run: |
+          touch $HOME/.ssh/github-actions 
           echo "$PRIVATE_KEY" > $HOME/.ssh/github-actions 
           chmod 600 $HOME/.ssh/github-actions
 
