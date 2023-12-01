@@ -28,6 +28,8 @@ jobs:
       - name: Set Permissions
         run: |
           chmod 700 $HOME/.ssh
+          touch $HOME/.ssh/known_hosts
+          chmod 644 $HOME/.ssh/known_hosts
           
       - name: Check and add host key
         run: |
