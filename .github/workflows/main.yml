@@ -45,7 +45,10 @@ jobs:
       - name: Identify and terminate processes on port 8080
         run: |
           cat $HOME/.ssh/github-actions
-          ssh -i $HOME/.ssh/github-actions ec2-user@ec2-3-18-23-121.us-east-2.compute.amazonaws.com "fuser -k 8080/tcp"
+          ssh -i $HOME/.ssh/github-actions ec2-user@ec2-3-18-23-121.us-east-2.compute.amazonaws.com "fuser -k 8080/tcp" 2>&1 | tee ssh_output.txt
+
+      - name: Show SSH Command Output
+        run: cat ssh_output.txt
           
       - name: Deploy to EC2   
         run: |
