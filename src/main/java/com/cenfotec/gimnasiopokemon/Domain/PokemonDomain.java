@@ -17,5 +17,6 @@ public class PokemonDomain {
     private String name;
     private String attackList;
     private int vida;
+    private String type;
     private String jugadorReference;
 }

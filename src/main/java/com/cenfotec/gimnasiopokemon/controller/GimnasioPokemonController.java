@@ -1,5 +1,7 @@
 package com.cenfotec.gimnasiopokemon.controller;
 
+import com.cenfotec.gimnasiopokemon.DTO.BatallaResponse;
+import com.cenfotec.gimnasiopokemon.Domain.BatallaDomain;
 import com.cenfotec.gimnasiopokemon.model.PlayerInformation;
 import com.cenfotec.gimnasiopokemon.service.GimnasioPokemonService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,5 +29,11 @@ public class GimnasioPokemonController {
     @PostMapping("/agregarPokemon/{name}")
     public void agregarPokemon(@PathVariable String name) {
         gimnasioPokemonService.agregarPokemon(name);
+    }
+
+    @GetMapping("/obtener-informacion-batalla")
+    public ResponseEntity<BatallaResponse> obtenerInformacionBatalla() {
+        BatallaResponse batallaResponse = gimnasioPokemonService.obtenerBatalla();
+        return ResponseEntity.ok(batallaResponse);
     }
 }
