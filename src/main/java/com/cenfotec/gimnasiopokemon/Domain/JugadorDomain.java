@@ -12,4 +12,5 @@ public class JugadorDomain {
     private Long id;
     private String name;
     private String batallaReference;
+    private String estado;
 }

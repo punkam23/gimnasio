@@ -1,5 +1,6 @@
 package com.cenfotec.gimnasiopokemon.controller;
 
+import com.cenfotec.gimnasiopokemon.DTO.AttackInformation;
 import com.cenfotec.gimnasiopokemon.DTO.BatallaResponse;
 import com.cenfotec.gimnasiopokemon.Domain.BatallaDomain;
 import com.cenfotec.gimnasiopokemon.model.PlayerInformation;
@@ -14,9 +15,16 @@ public class GimnasioPokemonController {
     @Autowired
     public GimnasioPokemonService gimnasioPokemonService;
 
+    @PostMapping("/iniciar-batalla")
+    public ResponseEntity<String> iniciarBatalla() {
+        String response = gimnasioPokemonService.iniciarBatalla();
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/atacar")
-    public void atacarPokemon() {
-        gimnasioPokemonService.atacarPokemon(1, 100);
+    public ResponseEntity<String> atacarPokemon(@RequestBody AttackInformation attackInformation) {
+        String response = gimnasioPokemonService.atacarPokemon(attackInformation.getSourcePlayerName(), attackInformation.getTargetPlayerName(), attackInformation.getAttackId());
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/unirse-batalla")

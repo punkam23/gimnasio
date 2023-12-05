@@ -1,10 +1,7 @@
 package com.cenfotec.gimnasiopokemon.service;
 
 import com.cenfotec.gimnasiopokemon.DTO.BatallaResponse;
-import com.cenfotec.gimnasiopokemon.Domain.BatallaDomain;
-import com.cenfotec.gimnasiopokemon.Domain.EstadoBatallaEnum;
-import com.cenfotec.gimnasiopokemon.Domain.JugadorDomain;
-import com.cenfotec.gimnasiopokemon.Domain.PokemonDomain;
+import com.cenfotec.gimnasiopokemon.Domain.*;
 import com.cenfotec.gimnasiopokemon.model.Attack;
 import com.cenfotec.gimnasiopokemon.model.PlayerInformation;
 import com.cenfotec.gimnasiopokemon.model.Pokemon;
@@ -19,8 +16,10 @@ import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,9 +46,72 @@ public class GimnasioPokemonService {
 
     }
 
-    public void atacarPokemon(int pokemonId, int cantidadAtaque) {
-        // Logic to retrieve YourEntity from the database or another data source
-        // For simplicity, a mock object is returned here
+    public String atacarPokemon(String sourcePlayerName, String targetPlayerName, int attackId) {
+        String response = Strings.EMPTY;
+        Optional<BatallaDomain> batallaEnCurso = obtenerBatallaEnCurso();
+        if(batallaEnCurso.isPresent() &&
+                EstadoBatallaEnum.valueOf(batallaEnCurso.get().getEstadoBatalla()).equals(EstadoBatallaEnum.EN_BATALLA)){
+            JugadorDomain jugadorAtacante = this.jugadorRepository.findByNameAndBatallaReference(sourcePlayerName,
+                    batallaEnCurso.get().getId().toString());
+            if(JugadorEstadoEnum.valueOf(jugadorAtacante.getEstado()).equals(JugadorEstadoEnum.EN_ATAQUE)){
+                JugadorDomain jugadorAtacado =
+                        this.jugadorRepository.findByNameAndBatallaReference(targetPlayerName,
+                                batallaEnCurso.get().getId().toString());
+                if(!ObjectUtils.isEmpty(jugadorAtacado) &&
+                        JugadorEstadoEnum.valueOf(jugadorAtacado.getEstado()).equals(JugadorEstadoEnum.EN_ESPERA)) {
+                    Optional<PokemonDomain> pokemonPlayer = this.pokemonRepository.findByJugadorReference(jugadorAtacado.getId().toString());
+                    if (pokemonPlayer.isPresent()) {
+                        PokemonDomain pokemonModificado = descontarVidaPokemon(pokemonPlayer.get(), attackId);
+                        this.pokemonRepository.save(pokemonModificado);
+                        jugadorAtacante.setEstado(JugadorEstadoEnum.EN_ESPERA.name());
+                        this.jugadorRepository.save(jugadorAtacante);
+                        if (pokemonModificado.getVida() <= 0) {
+                            jugadorAtacado.setEstado(JugadorEstadoEnum.TERMINADO.name());
+                            this.jugadorRepository.save(jugadorAtacado);
+                        }
+                        List<JugadorDomain> jugadorDomainList = this.jugadorRepository
+                                .findAllByBatallaReference(batallaEnCurso.get().getId().toString());
+                        jugadorDomainList.sort(Comparator.comparingLong(JugadorDomain::getId));
+                        jugadorDomainList = jugadorDomainList.stream().filter(jugadorDomain -> JugadorEstadoEnum.valueOf(jugadorDomain.getEstado()).equals(JugadorEstadoEnum.EN_ESPERA)).toList();
+                        int indexOfJugadorAtacante = jugadorDomainList.indexOf(jugadorAtacante);
+                        int indexOfSiguienteJugador = indexOfJugadorAtacante + 1;
+                        if(indexOfSiguienteJugador > jugadorDomainList.size() - 1){
+                            indexOfSiguienteJugador = 0;
+                        }
+                        JugadorDomain siguienteJugador = jugadorDomainList.get(indexOfSiguienteJugador);
+                        if(siguienteJugador.getName().equals(jugadorAtacante.getName())){
+                            siguienteJugador.setEstado(JugadorEstadoEnum.GANADOR.name());
+                            batallaEnCurso.get().setEstadoBatalla(EstadoBatallaEnum.TERMINADA.name());
+                            this.batallaRepository.save(batallaEnCurso.get());
+                        }else{
+                            siguienteJugador.setEstado(JugadorEstadoEnum.EN_ATAQUE.name());
+                        }
+                        this.jugadorRepository.save(siguienteJugador);
+                        response = "Pokemon Attack has been sent.";
+                    }
+                }else {
+                    response = "Pokemon Attack could not be sent.";
+                }
+            } else {
+                response = "Pokemon Attack could not be sent.";
+            }
+        } else {
+            response = "Pokemon Attack could not be sent.";
+        }
+        return response;
+    }
+
+    private PokemonDomain descontarVidaPokemon(PokemonDomain pokemonPlayer, int attackId) {
+        int vidaActual = pokemonPlayer.getVida();
+        List<Attack> attackList = List.of();
+        try {
+            attackList = objectMapper.readValue(pokemonPlayer.getAttackList(), new TypeReference<>() {});
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        int poderAtaque = attackList.get(attackId).getPower();
+        pokemonPlayer.setVida(vidaActual - poderAtaque);
+        return pokemonPlayer;
     }
 
     public String unirseBatalla(PlayerInformation playerInformation) {
@@ -58,8 +120,8 @@ public class GimnasioPokemonService {
         Optional<BatallaDomain> batallaEnLoby = batallas.stream().filter(batallaDomain -> batallaDomain.getEstadoBatalla().equals(EstadoBatallaEnum.LOBY.name())).findFirst();
         Optional<BatallaDomain> batallaEnCurso = batallas.stream().filter(batallaDomain -> batallaDomain.getEstadoBatalla().equals(EstadoBatallaEnum.EN_BATALLA.name())).findFirst();
         //revisar si se debe negar el OR
-        if (batallas.isEmpty() || batallas.stream().anyMatch(batallaDomain ->
-                List.of(EstadoBatallaEnum.EN_BATALLA, EstadoBatallaEnum.LOBY)
+        if (batallas.isEmpty() || !batallas.stream().anyMatch(batallaDomain ->
+                List.of(EstadoBatallaEnum.EN_BATALLA.name(), EstadoBatallaEnum.LOBY.name())
                         .contains(batallaDomain.getEstadoBatalla()))) {
             BatallaDomain batallaAgregada = agregarBatallaNueva(playerInformation);
             agregarJugador(playerInformation, batallaAgregada);
@@ -77,14 +139,6 @@ public class GimnasioPokemonService {
         } else if (batallaEnCurso.isPresent()) {
             respuesta = "batalla en curso";
         }
-//        if (batallaEnLoby.isPresent()) {
-//            JugadorDomain jugadorEnBatalla =
-//                    this.jugadorRepository.findByNameAndBatallaReference(playerInformation.getPlayerName(),
-//                            batallaEnLoby.get().getId().toString());
-//            if (ObjectUtils.isEmpty(jugadorEnBatalla)) {
-//                return "El jugador fue agregado a la batalla";
-//            }
-//        }
         if(batallaEnCurso.isPresent()){
             respuesta = "batalla en curso";
         }
@@ -106,6 +160,7 @@ public class GimnasioPokemonService {
         JugadorDomain nuevoJugador = new JugadorDomain();
         nuevoJugador.setName(playerInformation.getPlayerName());
         nuevoJugador.setBatallaReference(batallaDomain.getId().toString());
+        nuevoJugador.setEstado(JugadorEstadoEnum.EN_ESPERA.name());
         JugadorDomain jugadorCreado = this.jugadorRepository.save(nuevoJugador);
 
         // agregar pokemon
@@ -127,9 +182,7 @@ public class GimnasioPokemonService {
 
     public BatallaResponse obtenerBatalla() {
         BatallaResponse batallaResponse = new BatallaResponse();
-        List<BatallaDomain> batallas = this.batallaRepository.findAll();
-        Optional<BatallaDomain> batallaEnCurso = batallas.stream().filter(batallaDomain -> List.of(EstadoBatallaEnum.EN_BATALLA.name(),
-                EstadoBatallaEnum.LOBY.name()).contains(batallaDomain.getEstadoBatalla())).findFirst();
+        Optional<BatallaDomain> batallaEnCurso = obtenerBatallaEnCurso();
         if(batallaEnCurso.isPresent()){
             batallaResponse.setId(batallaEnCurso.get().getId());
             batallaResponse.setEstadoBatalla(batallaEnCurso.get().getEstadoBatalla());
@@ -159,7 +212,39 @@ public class GimnasioPokemonService {
             });
 
             batallaResponse.setPlayerInformationList(playerInformationList);
+        } else {
+            throw new RuntimeException("Error getting Battle Information");
         }
         return batallaResponse;
     }
+
+    public String iniciarBatalla() {
+        Optional<BatallaDomain> batallaEnCurso = obtenerBatallaEnCurso();
+        String response = Strings.EMPTY;
+        if(batallaEnCurso.isPresent() &&
+                EstadoBatallaEnum.valueOf(batallaEnCurso.get().getEstadoBatalla()).equals(EstadoBatallaEnum.LOBY)) {
+            batallaEnCurso.get().setEstadoBatalla(EstadoBatallaEnum.EN_BATALLA.name());
+            this.batallaRepository.save(batallaEnCurso.get());
+            List<JugadorDomain> jugadorDomainList = this.jugadorRepository
+                    .findAllByBatallaReference(batallaEnCurso.get().getId().toString());
+            jugadorDomainList.sort(Comparator.comparingLong(JugadorDomain::getId));
+            jugadorDomainList = jugadorDomainList.stream().filter(jugadorDomain -> JugadorEstadoEnum.valueOf(jugadorDomain.getEstado()).equals(JugadorEstadoEnum.EN_ESPERA)).toList();
+            JugadorDomain firstPlayer = jugadorDomainList.get(0);
+            firstPlayer.setEstado(JugadorEstadoEnum.EN_ATAQUE.name());
+            this.jugadorRepository.save(firstPlayer);
+            response = "The Battle has been initialized, to Battle.";
+        }else {
+            response = "Already in Battle";
+        }
+        return response;
+    }
+
+    private Optional<BatallaDomain> obtenerBatallaEnCurso() {
+        List<BatallaDomain> batallas = this.batallaRepository.findAll();
+        Optional<BatallaDomain> batallaEnCurso = batallas.stream().filter(batallaDomain -> List.of(EstadoBatallaEnum.EN_BATALLA.name(),
+                EstadoBatallaEnum.LOBY.name()).contains(batallaDomain.getEstadoBatalla())).findFirst();
+        return batallaEnCurso;
+    }
+
+
 }
