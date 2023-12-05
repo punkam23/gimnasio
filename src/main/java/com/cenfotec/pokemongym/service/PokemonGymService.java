@@ -75,8 +75,13 @@ public class PokemonGymService {
                                     this.playerRepository.save(attackedPlayer);
                                 }
                                 // Finally, set the new player turn
-                                setNextPlayer(attackingPlayer);
-                                message = modifiedPokemon.getName() + " has received a " + newAttack + " power attack.";
+                                boolean isNextPlayerAvailable = setNextPlayer(attackingPlayer);
+                                if(isNextPlayerAvailable){
+                                    message = modifiedPokemon.getName() + " has received a " + newAttack + " power attack.";
+                                } else {
+                                    message = attackingPlayer.getName() + " has win the Battle, Congratulations. Ending the Battle.";
+                                }
+
                                 success = true;
                             } else {
                                 message = "Pokemon attack could not be found.";
@@ -101,7 +106,7 @@ public class PokemonGymService {
         return createResponse(message, success);
     }
 
-    private void setNextPlayer(PlayerDomain attackingPlayer) {
+    private boolean setNextPlayer(PlayerDomain attackingPlayer) {
         // Search a current battle
         Optional<BattleDomain> currentBattle = getCurrentBattle();
         if (currentBattle.isPresent()) {
@@ -123,12 +128,15 @@ public class PokemonGymService {
                 nextPlayer.setState(PlayerStateEnum.GANADOR.name());
                 currentBattleInstance.setState(BattleStateEnum.TERMINADA.name());
                 this.battleRepository.save(currentBattleInstance);
+                return false;
             } else {
                 nextPlayer.setState(PlayerStateEnum.ATACANDO.name());
             }
             // Save the next player in the database
             this.playerRepository.save(nextPlayer);
+            return true;
         }
+        return false;
     }
 
     public ResponseEntity<Object> joinBattle(PlayerInformation playerInformation) {
