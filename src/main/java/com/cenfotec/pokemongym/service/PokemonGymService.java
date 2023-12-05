@@ -180,7 +180,6 @@ public class PokemonGymService {
         newPlayer.setName(playerInformation.getPlayerName());
         newPlayer.setBattleReference(battleDomain.getId().toString());
         newPlayer.setState(PlayerStateEnum.EN_BATALLA.name());
-        System.out.print(newPlayer);
         PlayerDomain createdPlayer = this.playerRepository.save(newPlayer);
 
         // Add pokemon
