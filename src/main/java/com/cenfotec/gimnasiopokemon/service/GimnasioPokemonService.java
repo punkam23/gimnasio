@@ -167,6 +167,7 @@ public class GimnasioPokemonService {
         PokemonDomain newPokemon = new PokemonDomain();
         newPokemon.setName(playerInformation.getPokemon().getName());
         newPokemon.setVida(playerInformation.getPokemon().getVida());
+        newPokemon.setType(playerInformation.getPokemon().getType().name());
         newPokemon.setJugadorReference(jugadorCreado.getId().toString());
         String jsonString;
         try {
