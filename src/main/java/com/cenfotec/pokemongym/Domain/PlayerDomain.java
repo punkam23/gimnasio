@@ -1,16 +1,16 @@
-package com.cenfotec.gimnasiopokemon.Domain;
+package com.cenfotec.pokemongym.Domain;
 
 import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
-@Table(name = "jugadores")
+@Table(name = "players")
 @Data
-public class JugadorDomain {
+public class PlayerDomain {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
-    private String batallaReference;
-    private String estado;
+    private String battleReference;
+    private String state;
 }

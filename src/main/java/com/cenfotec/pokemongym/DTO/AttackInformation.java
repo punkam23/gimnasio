@@ -1,4 +1,4 @@
-package com.cenfotec.gimnasiopokemon.DTO;
+package com.cenfotec.pokemongym.DTO;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;

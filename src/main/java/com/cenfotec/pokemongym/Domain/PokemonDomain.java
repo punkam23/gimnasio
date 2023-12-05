@@ -1,10 +1,7 @@
-package com.cenfotec.gimnasiopokemon.Domain;
+package com.cenfotec.pokemongym.Domain;
 
-import com.cenfotec.gimnasiopokemon.model.Attack;
 import jakarta.persistence.*;
 import lombok.Data;
-
-import java.util.List;
 
 @Entity
 @Table(name = "pokemons")
@@ -16,7 +13,7 @@ public class PokemonDomain {
 
     private String name;
     private String attackList;
-    private int vida;
+    private double life;
     private String type;
-    private String jugadorReference;
+    private String playerReference;
 }

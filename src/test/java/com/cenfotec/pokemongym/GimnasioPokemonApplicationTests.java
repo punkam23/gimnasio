@@ -1,6 +1,5 @@
-package com.cenfotec.gimnasiopokemon;
+package com.cenfotec.pokemongym;
 
-import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
