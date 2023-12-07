@@ -32,8 +32,6 @@ class GimnasioPokemonApplicationTests {
     private BattleRepository battleRepository;
     @Mock
     private  PlayerRepository playerRepository;
-    @Mock
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Mock
     private PokemonGymService pokemonService=

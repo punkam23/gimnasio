@@ -6,7 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 public class GimnasioPokemonServiceTests {
 
-    public GimnasioPokemonApplicationTests aplicationTest=new GimnasioPokemonApplicationTests();
+    private GimnasioPokemonApplicationTests aplicationTest=new GimnasioPokemonApplicationTests();
     @Test
     public void testAttackPokemon() {
         aplicationTest.testAttackPokemon();
