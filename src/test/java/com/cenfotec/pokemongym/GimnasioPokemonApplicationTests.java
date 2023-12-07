@@ -6,7 +6,6 @@ import com.cenfotec.pokemongym.controller.*;
 import com.cenfotec.pokemongym.model.*;
 import com.cenfotec.pokemongym.repository.*;
 import com.cenfotec.pokemongym.service.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.mockito.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
