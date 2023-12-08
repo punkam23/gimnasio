@@ -34,6 +34,41 @@ public class PokemonGymService {
         this.playerRepository = playerRepository;
     }
 
+    public ResponseEntity<Object> joinBattle(PlayerInformation playerInformation) {
+        String message = Strings.EMPTY;
+        boolean success = false;
+        List<BattleDomain> battles = this.battleRepository.findAll();
+        Optional<BattleDomain> lobbyBattle = battles.stream().filter(battleDomain -> checkBattleState(battleDomain, BattleStateEnum.LOBBY)).findFirst();
+        Optional<BattleDomain> currentBattle = battles.stream().filter(battleDomain -> checkBattleState(battleDomain, BattleStateEnum.EN_BATALLA)).findFirst();
+        // Check if OR should be negative
+        if (battles.isEmpty() || battles.stream().noneMatch(battleDomain ->
+                List.of(BattleStateEnum.EN_BATALLA.name(), BattleStateEnum.LOBBY.name())
+                        .contains(battleDomain.getState()))) {
+            BattleDomain addedBattle = addNewBattle();
+            addPlayer(playerInformation, addedBattle);
+            message = "The battle and player were added.";
+            success = true;
+        } else if (lobbyBattle.isPresent()) {
+            PlayerDomain playerInBattle =
+                    this.playerRepository.findByNameAndBattleReference(playerInformation.getPlayerName(),
+                            lobbyBattle.get().getId().toString());
+            if (ObjectUtils.isEmpty(playerInBattle)) {
+                addPlayer(playerInformation, lobbyBattle.get());
+                message = "The player was added to the battle.";
+                success = true;
+            } else {
+                message = "The player is already in the battle.";
+            }
+        } else if (currentBattle.isPresent()) {
+            message = "The battle is in progress.";
+        }
+        if (currentBattle.isPresent()) {
+            message = "The battle is in progress.";
+        }
+
+        return createResponse(message, success);
+    }
+
     public ResponseEntity<Object> attackPokemon(String sourcePlayerName, String targetPlayerName, int attackId) {
         String message;
         boolean success = false;
@@ -106,7 +141,7 @@ public class PokemonGymService {
         return createResponse(message, success);
     }
 
-    private boolean setNextPlayer(PlayerDomain attackingPlayer) {
+    public boolean setNextPlayer(PlayerDomain attackingPlayer) {
         // Search a current battle
         Optional<BattleDomain> currentBattle = getCurrentBattle();
         if (currentBattle.isPresent()) {
@@ -137,73 +172,6 @@ public class PokemonGymService {
             return true;
         }
         return false;
-    }
-
-    public ResponseEntity<Object> joinBattle(PlayerInformation playerInformation) {
-        String message = Strings.EMPTY;
-        boolean success = false;
-        List<BattleDomain> battles = this.battleRepository.findAll();
-        Optional<BattleDomain> lobbyBattle = battles.stream().filter(battleDomain -> checkBattleState(battleDomain, BattleStateEnum.LOBBY)).findFirst();
-        Optional<BattleDomain> currentBattle = battles.stream().filter(battleDomain -> checkBattleState(battleDomain, BattleStateEnum.EN_BATALLA)).findFirst();
-        // Check if OR should be negative
-        if (battles.isEmpty() || battles.stream().noneMatch(battleDomain ->
-                List.of(BattleStateEnum.EN_BATALLA.name(), BattleStateEnum.LOBBY.name())
-                        .contains(battleDomain.getState()))) {
-            BattleDomain addedBattle = addNewBattle();
-            addPlayer(playerInformation, addedBattle);
-            message = "The battle and player were added.";
-            success = true;
-        } else if (lobbyBattle.isPresent()) {
-            PlayerDomain playerInBattle =
-                    this.playerRepository.findByNameAndBattleReference(playerInformation.getPlayerName(),
-                            lobbyBattle.get().getId().toString());
-            if (ObjectUtils.isEmpty(playerInBattle)) {
-                addPlayer(playerInformation, lobbyBattle.get());
-                message = "The player was added to the battle.";
-                success = true;
-            } else {
-                message = "The player is already in the battle.";
-            }
-        } else if (currentBattle.isPresent()) {
-            message = "The battle is in progress.";
-        }
-        if (currentBattle.isPresent()) {
-            message = "The battle is in progress.";
-        }
-
-        return createResponse(message, success);
-    }
-
-    private BattleDomain addNewBattle() {
-        // Add Battle with player reference
-        BattleDomain newBattle = new BattleDomain();
-        newBattle.setState(BattleStateEnum.LOBBY.name());
-        return this.battleRepository.save(newBattle);
-    }
-
-    private void addPlayer(PlayerInformation playerInformation, BattleDomain battleDomain) {
-        // Add new player with pokémon reference
-        // Check if pokémon was added
-        PlayerDomain newPlayer = new PlayerDomain();
-        newPlayer.setName(playerInformation.getPlayerName());
-        newPlayer.setBattleReference(battleDomain.getId().toString());
-        newPlayer.setState(PlayerStateEnum.EN_BATALLA.name());
-        PlayerDomain createdPlayer = this.playerRepository.save(newPlayer);
-
-        // Add pokemon
-        PokemonDomain newPokemon = new PokemonDomain();
-        newPokemon.setName(playerInformation.getPokemon().getName());
-        newPokemon.setLife(playerInformation.getPokemon().getLife());
-        newPokemon.setType(playerInformation.getPokemon().getType().name());
-        newPokemon.setPlayerReference(createdPlayer.getId().toString());
-        String jsonString;
-        try {
-            jsonString = objectMapper.writeValueAsString(playerInformation.getPokemon().getAttacks());
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-        newPokemon.setAttackList(jsonString);
-        this.pokemonRepository.save(newPokemon);
     }
 
     public BattleResponse getBattleInfo() {
@@ -247,6 +215,31 @@ public class PokemonGymService {
         return battleResponse;
     }
 
+    public void addPlayer(PlayerInformation playerInformation, BattleDomain battleDomain) {
+        // Add new player with pokémon reference
+        // Check if pokémon was added
+        PlayerDomain newPlayer = new PlayerDomain();
+        newPlayer.setName(playerInformation.getPlayerName());
+        newPlayer.setBattleReference(battleDomain.getId().toString());
+        newPlayer.setState(PlayerStateEnum.EN_BATALLA.name());
+        PlayerDomain createdPlayer = this.playerRepository.save(newPlayer);
+
+        // Add pokemon
+        PokemonDomain newPokemon = new PokemonDomain();
+        newPokemon.setName(playerInformation.getPokemon().getName());
+        newPokemon.setLife(playerInformation.getPokemon().getLife());
+        newPokemon.setType(playerInformation.getPokemon().getType().name());
+        newPokemon.setPlayerReference(createdPlayer.getId().toString());
+        String jsonString;
+        try {
+            jsonString = objectMapper.writeValueAsString(playerInformation.getPokemon().getAttacks());
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        newPokemon.setAttackList(jsonString);
+        this.pokemonRepository.save(newPokemon);
+    }
+
     public ResponseEntity<Object> startBattle() {
         Optional<BattleDomain> currentBattle = getCurrentBattle();
         boolean success = false;
@@ -271,20 +264,28 @@ public class PokemonGymService {
         return createResponse(message, success);
     }
 
-    private Optional<BattleDomain> getCurrentBattle() {
-        List<BattleDomain> battles = this.battleRepository.findAll();
-        return battles.stream().filter(battleDomain -> List.of(BattleStateEnum.EN_BATALLA.name(), BattleStateEnum.LOBBY.name()).contains(battleDomain.getState())).findFirst();
+    public BattleDomain addNewBattle() {
+        // Add Battle with player reference
+        BattleDomain newBattle = new BattleDomain();
+        newBattle.setState(BattleStateEnum.LOBBY.name());
+        return this.battleRepository.save(newBattle);
     }
 
-    private boolean checkBattleState(BattleDomain battle, BattleStateEnum state) {
+    public Optional<BattleDomain> getCurrentBattle() {
+        List<BattleDomain> battles = this.battleRepository.findAll();
+        List<String> states = List.of(BattleStateEnum.EN_BATALLA.name(), BattleStateEnum.LOBBY.name());
+        return battles.stream().filter(battleDomain -> states.contains(battleDomain.getState())).findFirst();
+    }
+
+    public boolean checkBattleState(BattleDomain battle, BattleStateEnum state) {
         return BattleStateEnum.valueOf(battle.getState()).equals(state);
     }
 
-    private boolean checkPlayerState(PlayerDomain player, PlayerStateEnum state) {
+    public boolean checkPlayerState(PlayerDomain player, PlayerStateEnum state) {
         return PlayerStateEnum.valueOf(player.getState()).equals(state);
     }
 
-    private double calculateAttack(String pokemonType, Attack attack) {
+    public double calculateAttack(String pokemonType, Attack attack) {
         double product = 1.0;
         switch (attack.getType()) {
             case fuego:
@@ -313,7 +314,7 @@ public class PokemonGymService {
         return attack.getPower() * product;
     }
 
-    private ResponseEntity<Object> createResponse(String message, boolean success) {
+    public ResponseEntity<Object> createResponse(String message, boolean success) {
         Map<String, Object> response = new HashMap<>();
         response.put("message", message);
         response.put("success", success);
