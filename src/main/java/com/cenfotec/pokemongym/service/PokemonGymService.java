@@ -76,6 +76,10 @@ public class PokemonGymService {
         // Search a current battle
         Optional<BattleDomain> currentBattle = getCurrentBattle();
 
+        if (sourcePlayerName.equals(targetPlayerName)) {
+            return createResponse("The sourcePlayerName and targetPlayerName cannot be equals.", success);
+        }
+
         if (currentBattle.isPresent() && checkBattleState(currentBattle.get(), BattleStateEnum.EN_BATALLA)) {
             // If there is a current battle, and it is in battle, then search the attacking player
             BattleDomain currentBattleInstance = currentBattle.get();
