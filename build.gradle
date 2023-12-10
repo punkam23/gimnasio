@@ -22,10 +22,14 @@ repositories {
     mavenCentral()
 }
 
+test {
+    useJUnitPlatform()
+}
+
 jacocoTestReport {
     afterEvaluate {
         classDirectories = files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: 'com/ucenfotec/pokemongym/PokemonGymApplication.class')
+            fileTree(dir: it, exclude: 'com/cenfotec/pokemongym/PokemonGymApplication.class')
         })
     }
     reports {
