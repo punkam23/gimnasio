@@ -101,7 +101,9 @@ public class PokemonGymService {
                             if (attackIndex >= 0 && attackIndex < attacks.size()) {
                                 // Calculate and save the new pokémon life
                                 double newAttack = calculateAttack(modifiedPokemon.getType(), attacks.get(attackIndex));
-                                modifiedPokemon.setLife(modifiedPokemon.getLife() - newAttack);
+                                double newLife = modifiedPokemon.getLife() - newAttack;
+                                newLife = newLife <= 0 ? 0 : newLife;
+                                modifiedPokemon.setLife(newLife);
                                 this.pokemonRepository.save(modifiedPokemon);
                                 // Change the players state
                                 attackingPlayer.setState(PlayerStateEnum.EN_BATALLA.name());
