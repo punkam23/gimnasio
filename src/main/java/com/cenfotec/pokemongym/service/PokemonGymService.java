@@ -178,6 +178,13 @@ public class PokemonGymService {
     public BattleResponse getBattleInfo() {
         BattleResponse battleResponse = new BattleResponse();
         Optional<BattleDomain> currentBattle = getCurrentBattle();
+        if (currentBattle.isEmpty()) {
+            List<BattleDomain> battles = this.battleRepository.findAll();
+            List<String> states = List.of(BattleStateEnum.TERMINADA.name());
+            battles.sort(Comparator.comparingLong(BattleDomain::getId));
+            Collections.reverse(battles);
+            currentBattle = battles.stream().filter(battleDomain -> states.contains(battleDomain.getState())).findFirst();
+        }
         if (currentBattle.isPresent()) {
             BattleDomain currentBattleInstance = currentBattle.get();
             battleResponse.setId(currentBattleInstance.getId());
