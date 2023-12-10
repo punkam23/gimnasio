@@ -31,7 +31,13 @@ jobs:
           java-version: '17'
 
       - name: Build with Gradle
-        run: ./gradlew build
+        run: ./gradlew build test jacocoTestReport
+
+      - name: Publish JaCoCo results
+        uses: actions/upload-artifact@v2
+        with:
+          name: jacoco-results
+          path: build/reports/jacoco/test
 
       - name: Create SSH directory
         run: mkdir -p $HOME/.ssh
