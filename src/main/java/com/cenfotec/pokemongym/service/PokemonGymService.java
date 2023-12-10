@@ -1,6 +1,7 @@
 package com.cenfotec.pokemongym.service;
 
 import com.cenfotec.pokemongym.DTO.BattleResponse;
+import com.cenfotec.pokemongym.DTO.ResponseDTO;
 import com.cenfotec.pokemongym.Domain.*;
 import com.cenfotec.pokemongym.model.Attack;
 import com.cenfotec.pokemongym.model.PlayerInformation;
@@ -315,9 +316,9 @@ public class PokemonGymService {
     }
 
     public ResponseEntity<Object> createResponse(String message, boolean success) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", message);
-        response.put("success", success);
-        return success ? ResponseEntity.ok(response) : ResponseEntity.badRequest().body(response);
+        ResponseDTO responseDTO = new ResponseDTO();
+        responseDTO.setSuccess(success);
+        responseDTO.setMessage(message);
+        return success ? ResponseEntity.ok(responseDTO) : ResponseEntity.badRequest().body(responseDTO);
     }
 }

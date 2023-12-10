@@ -2,8 +2,11 @@ package com.cenfotec.pokemongym.DTO;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Setter
+@Getter
 public class AttackInformation {
     @JsonProperty("attackId")
     Integer attackId;
