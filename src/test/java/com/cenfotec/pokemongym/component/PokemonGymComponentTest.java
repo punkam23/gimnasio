@@ -96,6 +96,36 @@ public class PokemonGymComponentTest {
     }
 
     @Test
+    public void shouldFailWhenUnirseBatallaWithBadRequestTest() throws Exception {
+        //given
+        PlayerInformation playerInformation = createNewPlayer();
+        playerInformation.setPlayerName(null);
+
+        ResponseDTO responseDTOFromServer = new ResponseDTO();
+        responseDTOFromServer.setSuccess(true);
+        responseDTOFromServer.setMessage("The battle and player were added.");
+
+        //when
+
+        HttpRequest.BodyPublisher requestBodyPublisher = HttpRequest.BodyPublishers.ofString(
+                objectMapper.writeValueAsString(playerInformation));
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/api/gimnasio/unirse"))
+                .header("Content-Type", "application/json")
+                .POST(requestBodyPublisher)
+                .build();
+
+        // Send the request and get the response
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        // then
+
+        assertNotNull(response.body());
+        assertEquals(400, response.statusCode());
+    }
+
+    @Test
     public void shouldGetBatallaInfoTest() throws Exception {
         //given
         PlayerInformation playerInformation = createNewPlayer();

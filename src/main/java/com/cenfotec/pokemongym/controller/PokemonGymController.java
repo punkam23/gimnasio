@@ -4,6 +4,7 @@ import com.cenfotec.pokemongym.DTO.AttackInformation;
 import com.cenfotec.pokemongym.DTO.BattleResponse;
 import com.cenfotec.pokemongym.model.PlayerInformation;
 import com.cenfotec.pokemongym.service.PokemonGymService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,12 +21,12 @@ public class PokemonGymController {
     }
 
     @PostMapping("/atacar")
-    public ResponseEntity<Object> attackPokemon(@RequestBody AttackInformation attackInformation) {
+    public ResponseEntity<Object> attackPokemon(@Valid @RequestBody AttackInformation attackInformation) {
         return pokemonGymService.attackPokemon(attackInformation.getSourcePlayerName(), attackInformation.getTargetPlayerName(), attackInformation.getAttackId());
     }
 
     @PostMapping("/unirse")
-    public ResponseEntity<Object> joinBattle(@RequestBody PlayerInformation playerInformation) {
+    public ResponseEntity<Object> joinBattle(@Valid @RequestBody PlayerInformation playerInformation) {
         return pokemonGymService.joinBattle(playerInformation);
     }
 
