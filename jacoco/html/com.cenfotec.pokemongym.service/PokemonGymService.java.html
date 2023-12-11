@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PokemonGymService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gimnasioPokemon</a> &gt; <a href="index.source.html" class="el_package">com.cenfotec.pokemongym.service</a> &gt; <span class="el_source">PokemonGymService.java</span></div><h1>PokemonGymService.java</h1><pre class="source lang-java linenums">package com.cenfotec.pokemongym.service;
+
+import com.cenfotec.pokemongym.DTO.BattleResponse;
+import com.cenfotec.pokemongym.DTO.ResponseDTO;
+import com.cenfotec.pokemongym.Domain.*;
+import com.cenfotec.pokemongym.model.Attack;
+import com.cenfotec.pokemongym.model.PlayerInformation;
+import com.cenfotec.pokemongym.model.Pokemon;
+import com.cenfotec.pokemongym.model.PokemonType;
+import com.cenfotec.pokemongym.repository.BattleRepository;
+import com.cenfotec.pokemongym.repository.PlayerRepository;
+import com.cenfotec.pokemongym.repository.PokemonRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.logging.log4j.util.Strings;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
+
+import java.util.*;
+
+@Service
+public class PokemonGymService {
+    private final PokemonRepository pokemonRepository;
+    private final BattleRepository battleRepository;
+    private final PlayerRepository playerRepository;
+<span class="fc" id="L29">    private final ObjectMapper objectMapper = new ObjectMapper();</span>
+
+    @Autowired
+<span class="fc" id="L32">    public PokemonGymService(PokemonRepository pokemonRepository, BattleRepository battleRepository, PlayerRepository playerRepository) {</span>
+<span class="fc" id="L33">        this.pokemonRepository = pokemonRepository;</span>
+<span class="fc" id="L34">        this.battleRepository = battleRepository;</span>
+<span class="fc" id="L35">        this.playerRepository = playerRepository;</span>
+<span class="fc" id="L36">    }</span>
+
+    public ResponseEntity&lt;Object&gt; joinBattle(PlayerInformation playerInformation) {
+<span class="fc" id="L39">        String message = Strings.EMPTY;</span>
+<span class="fc" id="L40">        boolean success = false;</span>
+<span class="fc" id="L41">        List&lt;BattleDomain&gt; battles = this.battleRepository.findAll();</span>
+<span class="fc" id="L42">        Optional&lt;BattleDomain&gt; lobbyBattle = battles.stream().filter(battleDomain -&gt; checkBattleState(battleDomain, BattleStateEnum.LOBBY)).findFirst();</span>
+<span class="fc" id="L43">        Optional&lt;BattleDomain&gt; currentBattle = battles.stream().filter(battleDomain -&gt; checkBattleState(battleDomain, BattleStateEnum.EN_BATALLA)).findFirst();</span>
+        // Check if OR should be negative
+<span class="pc bpc" id="L45" title="1 of 4 branches missed.">        if (battles.isEmpty() || battles.stream().noneMatch(battleDomain -&gt;</span>
+<span class="fc" id="L46">                List.of(BattleStateEnum.EN_BATALLA.name(), BattleStateEnum.LOBBY.name())</span>
+<span class="fc" id="L47">                        .contains(battleDomain.getState()))) {</span>
+<span class="fc" id="L48">            BattleDomain addedBattle = addNewBattle();</span>
+<span class="fc" id="L49">            addPlayer(playerInformation, addedBattle);</span>
+<span class="fc" id="L50">            message = &quot;The battle and player were added.&quot;;</span>
+<span class="fc" id="L51">            success = true;</span>
+<span class="pc bpc" id="L52" title="1 of 2 branches missed.">        } else if (lobbyBattle.isPresent()) {</span>
+<span class="fc" id="L53">            PlayerDomain playerInBattle =</span>
+<span class="fc" id="L54">                    this.playerRepository.findByNameAndBattleReference(playerInformation.getPlayerName(),</span>
+<span class="fc" id="L55">                            lobbyBattle.get().getId().toString());</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">            if (ObjectUtils.isEmpty(playerInBattle)) {</span>
+<span class="fc" id="L57">                addPlayer(playerInformation, lobbyBattle.get());</span>
+<span class="fc" id="L58">                message = &quot;The player was added to the battle.&quot;;</span>
+<span class="fc" id="L59">                success = true;</span>
+            } else {
+<span class="nc" id="L61">                message = &quot;The player is already in the battle.&quot;;</span>
+            }
+<span class="pc bnc" id="L63" title="All 2 branches missed.">        } else if (currentBattle.isPresent()) {</span>
+<span class="nc" id="L64">            message = &quot;The battle is in progress.&quot;;</span>
+        }
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">        if (currentBattle.isPresent()) {</span>
+<span class="nc" id="L67">            message = &quot;The battle is in progress.&quot;;</span>
+        }
+
+<span class="fc" id="L70">        return createResponse(message, success);</span>
+    }
+
+    public ResponseEntity&lt;Object&gt; attackPokemon(String sourcePlayerName, String targetPlayerName, int attackId) {
+        String message;
+<span class="fc" id="L75">        boolean success = false;</span>
+        // Search a current battle
+<span class="fc" id="L77">        Optional&lt;BattleDomain&gt; currentBattle = getCurrentBattle();</span>
+
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">        if (sourcePlayerName.equals(targetPlayerName)) {</span>
+<span class="nc" id="L80">            return createResponse(&quot;The sourcePlayerName and targetPlayerName cannot be equals.&quot;, success);</span>
+        }
+
+<span class="pc bpc" id="L83" title="2 of 4 branches missed.">        if (currentBattle.isPresent() &amp;&amp; checkBattleState(currentBattle.get(), BattleStateEnum.EN_BATALLA)) {</span>
+            // If there is a current battle, and it is in battle, then search the attacking player
+<span class="fc" id="L85">            BattleDomain currentBattleInstance = currentBattle.get();</span>
+<span class="fc" id="L86">            PlayerDomain attackingPlayer = this.playerRepository.findByNameAndBattleReference(sourcePlayerName,</span>
+<span class="fc" id="L87">                    currentBattleInstance.getId().toString());</span>
+
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">            if (checkPlayerState(attackingPlayer, PlayerStateEnum.ATACANDO)) {</span>
+                // If the attacking player is valid, then search the attacked player
+<span class="fc" id="L91">                PlayerDomain attackedPlayer =</span>
+<span class="fc" id="L92">                        this.playerRepository.findByNameAndBattleReference(targetPlayerName,</span>
+<span class="fc" id="L93">                                currentBattleInstance.getId().toString());</span>
+
+<span class="pc bpc" id="L95" title="2 of 4 branches missed.">                if (!ObjectUtils.isEmpty(attackedPlayer) &amp;&amp; checkPlayerState(attackedPlayer, PlayerStateEnum.EN_BATALLA)) {</span>
+                    // If the attacker player is valid, then search the pokémon by player reference
+<span class="fc" id="L97">                    Optional&lt;PokemonDomain&gt; pokemonPlayer = this.pokemonRepository.findByPlayerReference(attackedPlayer.getId().toString());</span>
+<span class="fc" id="L98">                    Optional&lt;PokemonDomain&gt; attackingPokemonPlayer = this.pokemonRepository.findByPlayerReference(attackingPlayer.getId().toString());</span>
+
+<span class="pc bpc" id="L100" title="2 of 4 branches missed.">                    if (pokemonPlayer.isPresent() &amp;&amp; attackingPokemonPlayer.isPresent()) {</span>
+<span class="fc" id="L101">                        PokemonDomain modifiedPokemon = pokemonPlayer.get();</span>
+                        try {
+<span class="fc" id="L103">                            List&lt;Attack&gt; attacks = objectMapper.readValue(attackingPokemonPlayer.get().getAttackList(), new TypeReference&lt;&gt;() {});</span>
+<span class="fc" id="L104">                            int attackIndex = attackId - 1;</span>
+<span class="pc bpc" id="L105" title="2 of 4 branches missed.">                            if (attackIndex &gt;= 0 &amp;&amp; attackIndex &lt; attacks.size()) {</span>
+                                // Calculate and save the new pokémon life
+<span class="fc" id="L107">                                double newAttack = calculateAttack(modifiedPokemon.getType(), attacks.get(attackIndex));</span>
+<span class="fc" id="L108">                                double newLife = modifiedPokemon.getLife() - newAttack;</span>
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">                                newLife = newLife &lt;= 0 ? 0 : newLife;</span>
+<span class="fc" id="L110">                                modifiedPokemon.setLife(newLife);</span>
+<span class="fc" id="L111">                                this.pokemonRepository.save(modifiedPokemon);</span>
+                                // Change the players state
+<span class="fc" id="L113">                                attackingPlayer.setState(PlayerStateEnum.EN_BATALLA.name());</span>
+<span class="fc" id="L114">                                this.playerRepository.save(attackingPlayer);</span>
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">                                if (modifiedPokemon.getLife() &lt;= 0) {</span>
+<span class="nc" id="L116">                                    attackedPlayer.setState(PlayerStateEnum.DERROTADO.name());</span>
+<span class="nc" id="L117">                                    this.playerRepository.save(attackedPlayer);</span>
+                                }
+                                // Finally, set the new player turn
+<span class="fc" id="L120">                                boolean isNextPlayerAvailable = setNextPlayer(attackingPlayer);</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">                                if(isNextPlayerAvailable){</span>
+<span class="fc" id="L122">                                    message = modifiedPokemon.getName() + &quot; has received a &quot; + newAttack + &quot; power attack.&quot;;</span>
+                                } else {
+<span class="nc" id="L124">                                    message = attackingPlayer.getName() + &quot; has win the Battle, Congratulations. Ending the Battle.&quot;;</span>
+                                }
+
+<span class="fc" id="L127">                                success = true;</span>
+<span class="fc" id="L128">                            } else {</span>
+<span class="nc" id="L129">                                message = &quot;Pokemon attack could not be found.&quot;;</span>
+                            }
+<span class="nc" id="L131">                        } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L132">                            message = &quot;Error finding the pokemon attack&quot;;</span>
+<span class="fc" id="L133">                        }</span>
+<span class="fc" id="L134">                    }</span>
+                    else {
+<span class="nc" id="L136">                        message = &quot;Target Pokemon could not be found.&quot;;</span>
+                    }
+<span class="fc" id="L138">                } else {</span>
+<span class="nc" id="L139">                    message = &quot;Pokemon Attack could not be sent.&quot;;</span>
+                }
+<span class="fc" id="L141">            } else {</span>
+<span class="nc" id="L142">                message = &quot;It is not &quot; + sourcePlayerName + &quot; turn.&quot;;</span>
+            }
+<span class="fc" id="L144">        } else {</span>
+<span class="nc" id="L145">            message = &quot;The Pokemon Gym is not available.&quot;;</span>
+        }
+
+<span class="fc" id="L148">        return createResponse(message, success);</span>
+    }
+
+    public boolean setNextPlayer(PlayerDomain attackingPlayer) {
+        // Search a current battle
+<span class="fc" id="L153">        Optional&lt;BattleDomain&gt; currentBattle = getCurrentBattle();</span>
+<span class="pc bpc" id="L154" title="1 of 2 branches missed.">        if (currentBattle.isPresent()) {</span>
+            // If there is a current battle, search the waiting players and look for the current player index
+<span class="fc" id="L156">            BattleDomain currentBattleInstance = currentBattle.get();</span>
+<span class="fc" id="L157">            List&lt;PlayerDomain&gt; playerDomainList = this.playerRepository</span>
+<span class="fc" id="L158">                    .findAllByBattleReference(currentBattleInstance.getId().toString());</span>
+<span class="fc" id="L159">            playerDomainList.sort(Comparator.comparingLong(PlayerDomain::getId));</span>
+<span class="fc" id="L160">            playerDomainList = playerDomainList.stream().filter(playerDomain -&gt; checkPlayerState(playerDomain, PlayerStateEnum.EN_BATALLA)).toList();</span>
+<span class="fc" id="L161">            int attackingPlayerIndex = playerDomainList.indexOf(attackingPlayer);</span>
+<span class="fc" id="L162">            int nextPlayerIndex = attackingPlayerIndex + 1;</span>
+            // Check if the next the player is the first player again
+<span class="fc bfc" id="L164" title="All 2 branches covered.">            if (nextPlayerIndex &gt; playerDomainList.size() - 1) {</span>
+<span class="fc" id="L165">                nextPlayerIndex = 0;</span>
+            }
+<span class="fc" id="L167">            PlayerDomain nextPlayer = playerDomainList.get(nextPlayerIndex);</span>
+            // Check if the battles is over
+<span class="fc bfc" id="L169" title="All 2 branches covered.">            if (nextPlayer.getName().equals(attackingPlayer.getName())) {</span>
+<span class="fc" id="L170">                nextPlayer.setState(PlayerStateEnum.GANADOR.name());</span>
+<span class="fc" id="L171">                currentBattleInstance.setState(BattleStateEnum.TERMINADA.name());</span>
+<span class="fc" id="L172">                this.battleRepository.save(currentBattleInstance);</span>
+<span class="fc" id="L173">                return false;</span>
+            } else {
+<span class="fc" id="L175">                nextPlayer.setState(PlayerStateEnum.ATACANDO.name());</span>
+            }
+            // Save the next player in the database
+<span class="fc" id="L178">            this.playerRepository.save(nextPlayer);</span>
+<span class="fc" id="L179">            return true;</span>
+        }
+<span class="nc" id="L181">        return false;</span>
+    }
+
+    public BattleResponse getBattleInfo() {
+<span class="fc" id="L185">        BattleResponse battleResponse = new BattleResponse();</span>
+<span class="fc" id="L186">        Optional&lt;BattleDomain&gt; currentBattle = getCurrentBattle();</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">        if (currentBattle.isEmpty()) {</span>
+<span class="fc" id="L188">            List&lt;BattleDomain&gt; battles = this.battleRepository.findAll();</span>
+<span class="fc" id="L189">            List&lt;String&gt; states = List.of(BattleStateEnum.TERMINADA.name());</span>
+<span class="fc" id="L190">            battles.sort(Comparator.comparingLong(BattleDomain::getId));</span>
+<span class="fc" id="L191">            Collections.reverse(battles);</span>
+<span class="pc" id="L192">            currentBattle = battles.stream().filter(battleDomain -&gt; states.contains(battleDomain.getState())).findFirst();</span>
+        }
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        if (currentBattle.isPresent()) {</span>
+<span class="fc" id="L195">            BattleDomain currentBattleInstance = currentBattle.get();</span>
+<span class="fc" id="L196">            battleResponse.setId(currentBattleInstance.getId());</span>
+<span class="fc" id="L197">            battleResponse.setState(currentBattleInstance.getState());</span>
+<span class="fc" id="L198">            List&lt;PlayerInformation&gt; playerInformationList = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L199">            List&lt;PlayerDomain&gt; playersInBattle =</span>
+<span class="fc" id="L200">                    this.playerRepository.findAllByBattleReference(currentBattleInstance.getId().toString());</span>
+<span class="fc" id="L201">            playersInBattle.forEach(playerDomain -&gt; {</span>
+<span class="fc" id="L202">                Optional&lt;PokemonDomain&gt; pokemonPlayer = this.pokemonRepository.findByPlayerReference(playerDomain.getId().toString());</span>
+<span class="fc" id="L203">                PlayerInformation playerInformation = new PlayerInformation();</span>
+<span class="fc" id="L204">                playerInformation.setPlayerName(playerDomain.getName());</span>
+<span class="fc" id="L205">                playerInformation.setState(playerDomain.getState());</span>
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">                if (pokemonPlayer.isPresent()) {</span>
+<span class="fc" id="L207">                    Pokemon pokemonDTO = new Pokemon();</span>
+<span class="fc" id="L208">                    pokemonDTO.setName(pokemonPlayer.get().getName());</span>
+<span class="fc" id="L209">                    pokemonDTO.setLife(pokemonPlayer.get().getLife());</span>
+<span class="fc" id="L210">                    pokemonDTO.setType(PokemonType.valueOf(pokemonPlayer.get().getType()));</span>
+                    List&lt;Attack&gt; attackList;
+                    try {
+<span class="fc" id="L213">                        attackList = objectMapper.readValue(pokemonPlayer.get().getAttackList(), new TypeReference&lt;&gt;() {</span>
+                        });
+<span class="nc" id="L215">                    } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L216">                        throw new RuntimeException(e);</span>
+<span class="fc" id="L217">                    }</span>
+
+<span class="fc" id="L219">                    pokemonDTO.setAttacks(attackList);</span>
+<span class="fc" id="L220">                    playerInformation.setPokemon(pokemonDTO);</span>
+                }
+<span class="fc" id="L222">                playerInformationList.add(playerInformation);</span>
+<span class="fc" id="L223">            });</span>
+
+<span class="fc" id="L225">            battleResponse.setPlayerInformationList(playerInformationList);</span>
+<span class="fc" id="L226">        } else {</span>
+<span class="fc" id="L227">            throw new RuntimeException(&quot;There is not a current Battle.&quot;);</span>
+        }
+<span class="fc" id="L229">        return battleResponse;</span>
+    }
+
+    public void addPlayer(PlayerInformation playerInformation, BattleDomain battleDomain) {
+        // Add new player with pokémon reference
+        // Check if pokémon was added
+<span class="fc" id="L235">        PlayerDomain newPlayer = new PlayerDomain();</span>
+<span class="fc" id="L236">        newPlayer.setName(playerInformation.getPlayerName());</span>
+<span class="fc" id="L237">        newPlayer.setBattleReference(battleDomain.getId().toString());</span>
+<span class="fc" id="L238">        newPlayer.setState(PlayerStateEnum.EN_BATALLA.name());</span>
+<span class="fc" id="L239">        PlayerDomain createdPlayer = this.playerRepository.save(newPlayer);</span>
+
+        // Add pokemon
+<span class="fc" id="L242">        PokemonDomain newPokemon = new PokemonDomain();</span>
+<span class="fc" id="L243">        newPokemon.setName(playerInformation.getPokemon().getName());</span>
+<span class="fc" id="L244">        newPokemon.setLife(playerInformation.getPokemon().getLife());</span>
+<span class="fc" id="L245">        newPokemon.setType(playerInformation.getPokemon().getType().name());</span>
+<span class="fc" id="L246">        newPokemon.setPlayerReference(createdPlayer.getId().toString());</span>
+        String jsonString;
+        try {
+<span class="fc" id="L249">            jsonString = objectMapper.writeValueAsString(playerInformation.getPokemon().getAttacks());</span>
+<span class="nc" id="L250">        } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L251">            throw new RuntimeException(e);</span>
+<span class="fc" id="L252">        }</span>
+<span class="fc" id="L253">        newPokemon.setAttackList(jsonString);</span>
+<span class="fc" id="L254">        this.pokemonRepository.save(newPokemon);</span>
+<span class="fc" id="L255">    }</span>
+
+    public ResponseEntity&lt;Object&gt; startBattle() {
+<span class="fc" id="L258">        Optional&lt;BattleDomain&gt; currentBattle = getCurrentBattle();</span>
+<span class="fc" id="L259">        boolean success = false;</span>
+        String message;
+<span class="pc bpc" id="L261" title="1 of 4 branches missed.">        if (currentBattle.isPresent() &amp;&amp; checkBattleState(currentBattle.get(), BattleStateEnum.LOBBY)) {</span>
+<span class="fc" id="L262">            BattleDomain currentBattleInstance = currentBattle.get();</span>
+<span class="fc" id="L263">            currentBattleInstance.setState(BattleStateEnum.EN_BATALLA.name());</span>
+<span class="fc" id="L264">            this.battleRepository.save(currentBattleInstance);</span>
+<span class="fc" id="L265">            List&lt;PlayerDomain&gt; playerDomainList = this.playerRepository</span>
+<span class="fc" id="L266">                    .findAllByBattleReference(currentBattleInstance.getId().toString());</span>
+<span class="fc" id="L267">            playerDomainList.sort(Comparator.comparingLong(PlayerDomain::getId));</span>
+<span class="fc" id="L268">            playerDomainList = playerDomainList.stream().filter(playerDomain -&gt; checkPlayerState(playerDomain, PlayerStateEnum.EN_BATALLA)).toList();</span>
+<span class="fc" id="L269">            PlayerDomain firstPlayer = playerDomainList.get(0);</span>
+<span class="fc" id="L270">            firstPlayer.setState(PlayerStateEnum.ATACANDO.name());</span>
+<span class="fc" id="L271">            this.playerRepository.save(firstPlayer);</span>
+<span class="fc" id="L272">            message = &quot;The Battle has been initialized, to Battle!.&quot;;</span>
+<span class="fc" id="L273">            success = true;</span>
+<span class="fc" id="L274">        } else {</span>
+<span class="fc" id="L275">            message = &quot;Already in Battle&quot;;</span>
+        }
+
+<span class="fc" id="L278">        return createResponse(message, success);</span>
+    }
+
+    public BattleDomain addNewBattle() {
+        // Add Battle with player reference
+<span class="fc" id="L283">        BattleDomain newBattle = new BattleDomain();</span>
+<span class="fc" id="L284">        newBattle.setState(BattleStateEnum.LOBBY.name());</span>
+<span class="fc" id="L285">        return this.battleRepository.save(newBattle);</span>
+    }
+
+    public Optional&lt;BattleDomain&gt; getCurrentBattle() {
+<span class="fc" id="L289">        List&lt;BattleDomain&gt; battles = this.battleRepository.findAll();</span>
+<span class="fc" id="L290">        List&lt;String&gt; states = List.of(BattleStateEnum.EN_BATALLA.name(), BattleStateEnum.LOBBY.name());</span>
+<span class="fc" id="L291">        return battles.stream().filter(battleDomain -&gt; states.contains(battleDomain.getState())).findFirst();</span>
+    }
+
+    public boolean checkBattleState(BattleDomain battle, BattleStateEnum state) {
+<span class="fc" id="L295">        return BattleStateEnum.valueOf(battle.getState()).equals(state);</span>
+    }
+
+    public boolean checkPlayerState(PlayerDomain player, PlayerStateEnum state) {
+<span class="fc" id="L299">        return PlayerStateEnum.valueOf(player.getState()).equals(state);</span>
+    }
+
+    public double calculateAttack(String pokemonType, Attack attack) {
+<span class="fc" id="L303">        double product = 1.0;</span>
+<span class="pc bpc" id="L304" title="2 of 4 branches missed.">        switch (attack.getType()) {</span>
+            case fuego:
+<span class="pc bpc" id="L306" title="1 of 2 branches missed.">                if (pokemonType.equals(PokemonType.agua.name())) {</span>
+<span class="fc" id="L307">                    product = 0.75;</span>
+<span class="nc bnc" id="L308" title="All 2 branches missed.">                } else if (pokemonType.equals(PokemonType.planta.name())) {</span>
+<span class="nc" id="L309">                    product = 1.5;</span>
+                }
+                break;
+            case agua:
+<span class="pc bpc" id="L313" title="1 of 2 branches missed.">                if (pokemonType.equals(PokemonType.planta.name())) {</span>
+<span class="nc" id="L314">                    product = 0.75;</span>
+<span class="pc bpc" id="L315" title="1 of 2 branches missed.">                } else if (pokemonType.equals(PokemonType.fuego.name())) {</span>
+<span class="fc" id="L316">                    product = 1.5;</span>
+                }
+                break;
+            case planta:
+<span class="nc bnc" id="L320" title="All 2 branches missed.">                if (pokemonType.equals(PokemonType.fuego.name())) {</span>
+<span class="nc" id="L321">                    product = 0.75;</span>
+<span class="nc bnc" id="L322" title="All 2 branches missed.">                } else if (pokemonType.equals(PokemonType.agua.name())) {</span>
+<span class="nc" id="L323">                    product = 1.5;</span>
+                }
+                break;
+        }
+
+<span class="fc" id="L328">        return attack.getPower() * product;</span>
+    }
+
+    public ResponseEntity&lt;Object&gt; createResponse(String message, boolean success) {
+<span class="fc" id="L332">        ResponseDTO responseDTO = new ResponseDTO();</span>
+<span class="fc" id="L333">        responseDTO.setSuccess(success);</span>
+<span class="fc" id="L334">        responseDTO.setMessage(message);</span>
+<span class="fc bfc" id="L335" title="All 2 branches covered.">        return success ? ResponseEntity.ok(responseDTO) : ResponseEntity.badRequest().body(responseDTO);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

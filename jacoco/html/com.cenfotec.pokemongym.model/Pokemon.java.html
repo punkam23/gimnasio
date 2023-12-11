@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Pokemon.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gimnasioPokemon</a> &gt; <a href="index.source.html" class="el_package">com.cenfotec.pokemongym.model</a> &gt; <span class="el_source">Pokemon.java</span></div><h1>Pokemon.java</h1><pre class="source lang-java linenums">package com.cenfotec.pokemongym.model;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.List;
+
+<span class="fc" id="L13">@Setter</span>
+@Getter
+<span class="fc" id="L15">public class Pokemon {</span>
+
+    @NotNull
+    @JsonProperty(&quot;name&quot;)
+<span class="fc" id="L19">    String name;</span>
+
+    @NotNull
+    @JsonProperty(&quot;type&quot;)
+<span class="fc" id="L23">    PokemonType type;</span>
+
+    @NotNull
+    @Min(value = 100, message = &quot;The life must be greater than 100&quot;)
+    @JsonProperty(&quot;life&quot;)
+<span class="fc" id="L28">    double life;</span>
+
+    @NotNull
+    @NotEmpty
+    @JsonProperty(&quot;attacks&quot;)
+<span class="fc" id="L33">    List&lt;Attack&gt; attacks;</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
