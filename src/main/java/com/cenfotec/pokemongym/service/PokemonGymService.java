@@ -1,5 +1,6 @@
 package com.cenfotec.pokemongym.service;
 
+import com.cenfotec.pokemongym.BackgroundTaskService;
 import com.cenfotec.pokemongym.DTO.BattleResponse;
 import com.cenfotec.pokemongym.DTO.ResponseDTO;
 import com.cenfotec.pokemongym.Domain.*;
@@ -21,18 +22,31 @@ import org.springframework.util.ObjectUtils;
 
 import java.util.*;
 
+import static com.cenfotec.pokemongym.utils.CommonUtils.checkBattleState;
+import static com.cenfotec.pokemongym.utils.CommonUtils.checkPlayerState;
+
 @Service
 public class PokemonGymService {
     private final PokemonRepository pokemonRepository;
     private final BattleRepository battleRepository;
     private final PlayerRepository playerRepository;
+
+    private final BackgroundTaskService backgroundTaskService;
+
+    private final PlayerService playerService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
-    public PokemonGymService(PokemonRepository pokemonRepository, BattleRepository battleRepository, PlayerRepository playerRepository) {
+    public PokemonGymService(PokemonRepository pokemonRepository,
+                             BattleRepository battleRepository,
+                             PlayerRepository playerRepository,
+                             BackgroundTaskService backgroundTaskService,
+                             PlayerService playerService) {
         this.pokemonRepository = pokemonRepository;
         this.battleRepository = battleRepository;
         this.playerRepository = playerRepository;
+        this.backgroundTaskService = backgroundTaskService;
+        this.playerService = playerService;
     }
 
     public ResponseEntity<Object> joinBattle(PlayerInformation playerInformation) {
@@ -74,7 +88,7 @@ public class PokemonGymService {
         String message;
         boolean success = false;
         // Search a current battle
-        Optional<BattleDomain> currentBattle = getCurrentBattle();
+        Optional<BattleDomain> currentBattle = this.playerService.getCurrentBattle();
 
         if (sourcePlayerName.equals(targetPlayerName)) {
             return createResponse("The sourcePlayerName and targetPlayerName cannot be equals.", success);
@@ -117,8 +131,10 @@ public class PokemonGymService {
                                     this.playerRepository.save(attackedPlayer);
                                 }
                                 // Finally, set the new player turn
-                                boolean isNextPlayerAvailable = setNextPlayer(attackingPlayer);
-                                if(isNextPlayerAvailable){
+                                PlayerDomain isNextPlayerAvailable = this.playerService.setNextPlayer(attackingPlayer);
+                                if(!ObjectUtils.isEmpty(isNextPlayerAvailable)){
+//                                    this.schedulerService.execute(isNextPlayerAvailable.getName(), isNextPlayerAvailable.getBattleReference());
+                                    this.backgroundTaskService.resetScheduler();
                                     message = modifiedPokemon.getName() + " has received a " + newAttack + " power attack.";
                                 } else {
                                     message = attackingPlayer.getName() + " has win the Battle, Congratulations. Ending the Battle.";
@@ -148,42 +164,9 @@ public class PokemonGymService {
         return createResponse(message, success);
     }
 
-    public boolean setNextPlayer(PlayerDomain attackingPlayer) {
-        // Search a current battle
-        Optional<BattleDomain> currentBattle = getCurrentBattle();
-        if (currentBattle.isPresent()) {
-            // If there is a current battle, search the waiting players and look for the current player index
-            BattleDomain currentBattleInstance = currentBattle.get();
-            List<PlayerDomain> playerDomainList = this.playerRepository
-                    .findAllByBattleReference(currentBattleInstance.getId().toString());
-            playerDomainList.sort(Comparator.comparingLong(PlayerDomain::getId));
-            playerDomainList = playerDomainList.stream().filter(playerDomain -> checkPlayerState(playerDomain, PlayerStateEnum.EN_BATALLA)).toList();
-            int attackingPlayerIndex = playerDomainList.indexOf(attackingPlayer);
-            int nextPlayerIndex = attackingPlayerIndex + 1;
-            // Check if the next the player is the first player again
-            if (nextPlayerIndex > playerDomainList.size() - 1) {
-                nextPlayerIndex = 0;
-            }
-            PlayerDomain nextPlayer = playerDomainList.get(nextPlayerIndex);
-            // Check if the battles is over
-            if (nextPlayer.getName().equals(attackingPlayer.getName())) {
-                nextPlayer.setState(PlayerStateEnum.GANADOR.name());
-                currentBattleInstance.setState(BattleStateEnum.TERMINADA.name());
-                this.battleRepository.save(currentBattleInstance);
-                return false;
-            } else {
-                nextPlayer.setState(PlayerStateEnum.ATACANDO.name());
-            }
-            // Save the next player in the database
-            this.playerRepository.save(nextPlayer);
-            return true;
-        }
-        return false;
-    }
-
     public BattleResponse getBattleInfo() {
         BattleResponse battleResponse = new BattleResponse();
-        Optional<BattleDomain> currentBattle = getCurrentBattle();
+        Optional<BattleDomain> currentBattle = this.playerService.getCurrentBattle();
         if (currentBattle.isEmpty()) {
             List<BattleDomain> battles = this.battleRepository.findAll();
             List<String> states = List.of(BattleStateEnum.TERMINADA.name());
@@ -255,7 +238,7 @@ public class PokemonGymService {
     }
 
     public ResponseEntity<Object> startBattle() {
-        Optional<BattleDomain> currentBattle = getCurrentBattle();
+        Optional<BattleDomain> currentBattle = this.playerService.getCurrentBattle();
         boolean success = false;
         String message;
         if (currentBattle.isPresent() && checkBattleState(currentBattle.get(), BattleStateEnum.LOBBY)) {
@@ -268,6 +251,7 @@ public class PokemonGymService {
             playerDomainList = playerDomainList.stream().filter(playerDomain -> checkPlayerState(playerDomain, PlayerStateEnum.EN_BATALLA)).toList();
             PlayerDomain firstPlayer = playerDomainList.get(0);
             firstPlayer.setState(PlayerStateEnum.ATACANDO.name());
+            this.backgroundTaskService.resetScheduler();
             this.playerRepository.save(firstPlayer);
             message = "The Battle has been initialized, to Battle!.";
             success = true;
@@ -283,20 +267,6 @@ public class PokemonGymService {
         BattleDomain newBattle = new BattleDomain();
         newBattle.setState(BattleStateEnum.LOBBY.name());
         return this.battleRepository.save(newBattle);
-    }
-
-    public Optional<BattleDomain> getCurrentBattle() {
-        List<BattleDomain> battles = this.battleRepository.findAll();
-        List<String> states = List.of(BattleStateEnum.EN_BATALLA.name(), BattleStateEnum.LOBBY.name());
-        return battles.stream().filter(battleDomain -> states.contains(battleDomain.getState())).findFirst();
-    }
-
-    public boolean checkBattleState(BattleDomain battle, BattleStateEnum state) {
-        return BattleStateEnum.valueOf(battle.getState()).equals(state);
-    }
-
-    public boolean checkPlayerState(PlayerDomain player, PlayerStateEnum state) {
-        return PlayerStateEnum.valueOf(player.getState()).equals(state);
     }
 
     public double calculateAttack(String pokemonType, Attack attack) {

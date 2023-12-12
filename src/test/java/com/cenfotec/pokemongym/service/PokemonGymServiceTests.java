@@ -1,5 +1,6 @@
 package com.cenfotec.pokemongym.service;
 
+import com.cenfotec.pokemongym.BackgroundTaskService;
 import com.cenfotec.pokemongym.DTO.BattleResponse;
 import com.cenfotec.pokemongym.Domain.*;
 import com.cenfotec.pokemongym.model.Attack;
@@ -17,10 +18,11 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import static com.cenfotec.pokemongym.utils.CommonUtils.checkBattleState;
+import static com.cenfotec.pokemongym.utils.CommonUtils.checkPlayerState;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import org.springframework.http.ResponseEntity;
 
@@ -43,6 +45,12 @@ class PokemonGymServiceTests {
 
     @Mock
     private PokemonRepository pokemonRepository;
+
+    @Mock
+    private PlayerService playerService;
+
+    @Mock
+    private BackgroundTaskService backgroundTaskService;
 
     @Mock
     private ObjectMapper objectMapper;
@@ -162,6 +170,7 @@ class PokemonGymServiceTests {
         mockAttack.setType(PokemonType.planta);
         mockAttack.setPower(40);
 
+        when(playerService.getCurrentBattle()).thenReturn(Optional.of(mockBattle));
         when(battleRepository.findAll()).thenReturn(List.of(mockBattle));
         when(playerRepository.findAllByBattleReference(any(String.class))).thenReturn(new ArrayList<>(List.of(mockAttackingPlayer, mockAttackedPlayer)));
         when(pokemonRepository.findByPlayerReference("1")).thenReturn(Optional.of(mockAttackingPokemon));
@@ -172,43 +181,12 @@ class PokemonGymServiceTests {
                 .thenReturn(mockAttackedPlayer);
         when(playerRepository.save(any(PlayerDomain.class))).thenReturn(mockAttackingPlayer, mockAttackedPlayer);
         when(pokemonRepository.save(any(PokemonDomain.class))).thenReturn(mockModifiedPokemon);
-
+        doNothing().when(backgroundTaskService).resetScheduler();
         // WHEN
         ResponseEntity<Object> result = pokemonGymService.attackPokemon(sourcePlayerName, targetPlayerName, attackId);
 
         // THEN
         assertEquals(200, result.getStatusCode().value());
-    }
-
-    @Test
-    public void testSetNextPlayer() {
-        // GIVEN
-        BattleDomain mockBattle = new BattleDomain();
-        mockBattle.setId(1L);
-        mockBattle.setState(BattleStateEnum.LOBBY.name());
-
-        PlayerDomain player1 = new PlayerDomain();
-        player1.setId(1L);
-        player1.setState(PlayerStateEnum.EN_BATALLA.name());
-        player1.setName("Ash");
-        player1.setBattleReference("1");
-
-        PlayerDomain player2 = new PlayerDomain();
-        player2.setId(2L);
-        player2.setState(PlayerStateEnum.DERROTADO.name());
-        player2.setName("Gary");
-        player2.setBattleReference("1");
-
-        when(battleRepository.findAll()).thenReturn(List.of(mockBattle));
-        when(playerRepository.findAllByBattleReference(any(String.class))).thenReturn(new ArrayList<>(List.of(player1, player2)));
-
-        // WHEN
-        boolean result = pokemonGymService.setNextPlayer(player1);
-
-        // THEN
-        assertFalse(result);
-        assertEquals(PlayerStateEnum.DERROTADO.name(), player2.getState());
-        assertEquals(BattleStateEnum.TERMINADA.name(), mockBattle.getState());
     }
 
     @Test
@@ -236,6 +214,7 @@ class PokemonGymServiceTests {
         when(battleRepository.findAll()).thenReturn(List.of(mockBattle));
         when(playerRepository.findAllByBattleReference("1")).thenReturn(List.of(mockPlayer));
         when(pokemonRepository.findByPlayerReference("1")).thenReturn(Optional.of(mockPokemon));
+        when(playerService.getCurrentBattle()).thenReturn(Optional.of(mockBattle));
 
         // WHEN
         BattleResponse result = pokemonGymService.getBattleInfo();
@@ -316,6 +295,8 @@ class PokemonGymServiceTests {
 
         when(battleRepository.findAll()).thenReturn(List.of(lobbyBattle));
         when(playerRepository.findAllByBattleReference(any(String.class))).thenReturn(playersInLobby);
+        when(playerService.getCurrentBattle()).thenReturn(Optional.of(lobbyBattle));
+        doNothing().when(backgroundTaskService).resetScheduler();
 
         // WHEN
         ResponseEntity<Object> result = pokemonGymService.startBattle();
@@ -354,23 +335,7 @@ class PokemonGymServiceTests {
         assertEquals(BattleStateEnum.LOBBY.name(), result.getState());
     }
 
-    @Test
-    public void testGetCurrentBattle() {
-        // GIVEN
-        BattleDomain battleInLobby = new BattleDomain();
-        battleInLobby.setState(BattleStateEnum.LOBBY.name());
-        battleInLobby.setId(1L);
-        List<BattleDomain> battles = List.of(battleInLobby);
 
-        when(battleRepository.findAll()).thenReturn(battles);
-
-        // WHEN
-        Optional<BattleDomain> result = pokemonGymService.getCurrentBattle();
-
-        // THEN
-        assertTrue(result.isPresent());
-        assertEquals(battleInLobby, result.get());
-    }
 
     @Test
     public void testCheckBattleState() {
@@ -379,7 +344,7 @@ class PokemonGymServiceTests {
         battleDomain.setState(BattleStateEnum.LOBBY.name());
 
         // WHEN
-        boolean result = pokemonGymService.checkBattleState(battleDomain, BattleStateEnum.LOBBY);
+        boolean result = checkBattleState(battleDomain, BattleStateEnum.LOBBY);
 
         // THEN
         assertTrue(result);
@@ -392,7 +357,7 @@ class PokemonGymServiceTests {
         player.setState(PlayerStateEnum.EN_BATALLA.name());
 
         // WHEN
-        boolean result = pokemonGymService.checkPlayerState(player, PlayerStateEnum.EN_BATALLA);
+        boolean result = checkPlayerState(player, PlayerStateEnum.EN_BATALLA);
 
         // THEN
         assertTrue(result);
