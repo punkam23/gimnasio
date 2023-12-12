@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PlayerService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gimnasioPokemon</a> &gt; <a href="index.source.html" class="el_package">com.cenfotec.pokemongym.service</a> &gt; <span class="el_source">PlayerService.java</span></div><h1>PlayerService.java</h1><pre class="source lang-java linenums">package com.cenfotec.pokemongym.service;
+
+import com.cenfotec.pokemongym.Domain.BattleDomain;
+import com.cenfotec.pokemongym.Domain.BattleStateEnum;
+import com.cenfotec.pokemongym.Domain.PlayerDomain;
+import com.cenfotec.pokemongym.Domain.PlayerStateEnum;
+import com.cenfotec.pokemongym.repository.BattleRepository;
+import com.cenfotec.pokemongym.repository.PlayerRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+
+import static com.cenfotec.pokemongym.utils.CommonUtils.checkPlayerState;
+
+@Service
+<span class="fc" id="L19">public class PlayerService {</span>
+
+    @Autowired
+    private  BattleRepository battleRepository;
+
+    @Autowired
+    private  PlayerRepository playerRepository;
+
+    public Optional&lt;BattleDomain&gt; getCurrentBattle() {
+<span class="fc" id="L28">        List&lt;BattleDomain&gt; battles = this.battleRepository.findAll();</span>
+<span class="fc" id="L29">        List&lt;String&gt; states = List.of(BattleStateEnum.EN_BATALLA.name(), BattleStateEnum.LOBBY.name());</span>
+<span class="fc" id="L30">        return battles.stream().filter(battleDomain -&gt; states.contains(battleDomain.getState())).findFirst();</span>
+    }
+
+    public PlayerDomain setNextPlayer(PlayerDomain attackingPlayer) {
+        // Search a current battle
+<span class="fc" id="L35">        Optional&lt;BattleDomain&gt; currentBattle = getCurrentBattle();</span>
+<span class="pc bpc" id="L36" title="1 of 2 branches missed.">        if (currentBattle.isPresent()) {</span>
+            // If there is a current battle, search the waiting players and look for the current player index
+<span class="fc" id="L38">            BattleDomain currentBattleInstance = currentBattle.get();</span>
+<span class="fc" id="L39">            List&lt;PlayerDomain&gt; playerDomainList = this.playerRepository</span>
+<span class="fc" id="L40">                    .findAllByBattleReference(currentBattleInstance.getId().toString());</span>
+<span class="fc" id="L41">            playerDomainList.sort(Comparator.comparingLong(PlayerDomain::getId));</span>
+<span class="fc" id="L42">            playerDomainList = playerDomainList.stream().filter(playerDomain -&gt; checkPlayerState(playerDomain, PlayerStateEnum.EN_BATALLA)).toList();</span>
+<span class="fc" id="L43">            int attackingPlayerIndex = playerDomainList.indexOf(attackingPlayer);</span>
+<span class="fc" id="L44">            int nextPlayerIndex = attackingPlayerIndex + 1;</span>
+            // Check if the next the player is the first player again
+<span class="pc bpc" id="L46" title="1 of 2 branches missed.">            if (nextPlayerIndex &gt; playerDomainList.size() - 1) {</span>
+<span class="fc" id="L47">                nextPlayerIndex = 0;</span>
+            }
+<span class="fc" id="L49">            PlayerDomain nextPlayer = playerDomainList.get(nextPlayerIndex);</span>
+            // Check if the battles is over
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">            if (nextPlayer.getName().equals(attackingPlayer.getName())) {</span>
+<span class="fc" id="L52">                nextPlayer.setState(PlayerStateEnum.GANADOR.name());</span>
+<span class="fc" id="L53">                currentBattleInstance.setState(BattleStateEnum.TERMINADA.name());</span>
+<span class="fc" id="L54">                this.battleRepository.save(currentBattleInstance);</span>
+<span class="fc" id="L55">                return null;</span>
+            } else {
+<span class="nc" id="L57">                nextPlayer.setState(PlayerStateEnum.ATACANDO.name());</span>
+            }
+            // Save the next player in the database
+<span class="nc" id="L60">            this.playerRepository.save(nextPlayer);</span>
+<span class="nc" id="L61">            return nextPlayer;</span>
+        }
+<span class="nc" id="L63">        return null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

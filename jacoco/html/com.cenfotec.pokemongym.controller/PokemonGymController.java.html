@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PokemonGymController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gimnasioPokemon</a> &gt; <a href="index.source.html" class="el_package">com.cenfotec.pokemongym.controller</a> &gt; <span class="el_source">PokemonGymController.java</span></div><h1>PokemonGymController.java</h1><pre class="source lang-java linenums">package com.cenfotec.pokemongym.controller;
+
+import com.cenfotec.pokemongym.DTO.AttackInformation;
+import com.cenfotec.pokemongym.DTO.BattleResponse;
+import com.cenfotec.pokemongym.model.PlayerInformation;
+import com.cenfotec.pokemongym.service.PokemonGymService;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping(&quot;/api/gimnasio&quot;)
+<span class="fc" id="L14">public class PokemonGymController {</span>
+    @Autowired
+    public PokemonGymService pokemonGymService;
+
+    @PostMapping(&quot;/iniciar&quot;)
+    public ResponseEntity&lt;Object&gt; startBattle() {
+<span class="fc" id="L20">        return pokemonGymService.startBattle();</span>
+    }
+
+    @PostMapping(&quot;/atacar&quot;)
+    public ResponseEntity&lt;Object&gt; attackPokemon(@Valid @RequestBody AttackInformation attackInformation) {
+<span class="fc" id="L25">        return pokemonGymService.attackPokemon(attackInformation.getSourcePlayerName(), attackInformation.getTargetPlayerName(), attackInformation.getAttackId());</span>
+    }
+
+    @PostMapping(&quot;/unirse&quot;)
+    public ResponseEntity&lt;Object&gt; joinBattle(@Valid @RequestBody PlayerInformation playerInformation) {
+<span class="fc" id="L30">        return pokemonGymService.joinBattle(playerInformation);</span>
+    }
+
+    @GetMapping(&quot;/info&quot;)
+    public ResponseEntity&lt;BattleResponse&gt; getBattleInfo() {
+<span class="fc" id="L35">        BattleResponse battleResponse = pokemonGymService.getBattleInfo();</span>
+<span class="fc" id="L36">        return ResponseEntity.ok(battleResponse);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

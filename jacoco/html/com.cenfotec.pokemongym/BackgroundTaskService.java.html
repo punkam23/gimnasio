@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BackgroundTaskService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gimnasioPokemon</a> &gt; <a href="index.source.html" class="el_package">com.cenfotec.pokemongym</a> &gt; <span class="el_source">BackgroundTaskService.java</span></div><h1>BackgroundTaskService.java</h1><pre class="source lang-java linenums">package com.cenfotec.pokemongym;
+
+import com.cenfotec.pokemongym.Domain.BattleDomain;
+import com.cenfotec.pokemongym.Domain.BattleStateEnum;
+import com.cenfotec.pokemongym.Domain.PlayerDomain;
+import com.cenfotec.pokemongym.Domain.PlayerStateEnum;
+import com.cenfotec.pokemongym.repository.BattleRepository;
+import com.cenfotec.pokemongym.repository.PlayerRepository;
+import com.cenfotec.pokemongym.service.PlayerService;
+import org.apache.logging.log4j.util.Strings;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.SchedulingConfigurer;
+import org.springframework.scheduling.config.ScheduledTaskRegistrar;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+import static com.cenfotec.pokemongym.utils.CommonUtils.checkBattleState;
+
+@Service
+<span class="fc" id="L27">public class BackgroundTaskService implements SchedulingConfigurer {</span>
+
+    private ScheduledExecutorService scheduler;
+
+    private static ScheduledFuture&lt;?&gt; scheduledFuture;
+
+    @Autowired
+    private BattleRepository battleRepository;
+
+    @Autowired
+    private PlayerRepository playerRepository;
+
+    @Autowired
+    private PlayerService playerService;
+
+<span class="fc" id="L42">    private String currentAttackingPlayerName = Strings.EMPTY;</span>
+
+    @Override
+    public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+<span class="fc" id="L46">        startSchedule();</span>
+<span class="fc" id="L47">    }</span>
+
+    public String getCurrentAttackingPlayerName() {
+<span class="fc" id="L50">        return currentAttackingPlayerName;</span>
+    }
+
+    public void resetScheduler() {
+<span class="fc" id="L54">        scheduler.shutdown();</span>
+<span class="fc" id="L55">        scheduledFuture.cancel(true);</span>
+<span class="fc" id="L56">        startSchedule();</span>
+<span class="fc" id="L57">    }</span>
+
+    private void startSchedule() {
+<span class="fc" id="L60">        scheduler = new ScheduledThreadPoolExecutor(1);</span>
+<span class="fc" id="L61">        scheduledFuture = scheduler.scheduleAtFixedRate(() -&gt; {</span>
+<span class="fc" id="L62">            runScheduledTask();</span>
+<span class="fc" id="L63">            System.out.println(&quot;Running background task...&quot;);</span>
+<span class="fc" id="L64">        }, 0, 1, TimeUnit.MINUTES);</span>
+<span class="fc" id="L65">    }</span>
+
+    public void runScheduledTask() {
+<span class="fc" id="L68">        List&lt;BattleDomain&gt; battleList = this.battleRepository.findAll();</span>
+<span class="fc" id="L69">        Optional&lt;BattleDomain&gt; currentBattle = battleList.stream().filter(battleDomain -&gt; checkBattleState(battleDomain, BattleStateEnum.EN_BATALLA)).findFirst();</span>
+<span class="fc bfc" id="L70" title="All 4 branches covered.">        if(currentBattle.isPresent() &amp;&amp; Strings.isNotEmpty(getCurrentAttackingPlayerName())){</span>
+<span class="fc" id="L71">            List&lt;PlayerDomain&gt; playerDomainList = this.playerRepository</span>
+<span class="fc" id="L72">                    .findAllByBattleReference(currentBattle.get().getId().toString());</span>
+<span class="fc" id="L73">            Optional&lt;PlayerDomain&gt; attackingPlayer = playerDomainList.stream().filter(playerDomain -&gt;</span>
+<span class="fc" id="L74">                    playerDomain.getState().equals(PlayerStateEnum.ATACANDO.name())).findFirst();</span>
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">            if (attackingPlayer.isPresent()){</span>
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">                if(attackingPlayer.get().getName().equals(getCurrentAttackingPlayerName())){</span>
+                    // calculate new turn
+<span class="fc" id="L78">                    attackingPlayer.get().setState(PlayerStateEnum.EN_BATALLA.name());</span>
+<span class="fc" id="L79">                    this.playerRepository.save(attackingPlayer.get());</span>
+<span class="fc" id="L80">                    PlayerDomain isNextPlayerAvailable = this.playerService.setNextPlayer(attackingPlayer.get());</span>
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">                    if(Objects.isNull(isNextPlayerAvailable)){</span>
+<span class="nc" id="L82">                        currentAttackingPlayerName = Strings.EMPTY;</span>
+                    }else {
+<span class="fc" id="L84">                        currentAttackingPlayerName = isNextPlayerAvailable.getName();</span>
+                    }
+<span class="fc" id="L86">                }else{</span>
+<span class="nc" id="L87">                    currentAttackingPlayerName = attackingPlayer.get().getName();</span>
+                }
+            }
+<span class="pc bpc" id="L90" title="1 of 4 branches missed.">        }else if(Strings.isEmpty(getCurrentAttackingPlayerName()) &amp;&amp; currentBattle.isPresent()){</span>
+<span class="fc" id="L91">            List&lt;PlayerDomain&gt; playerDomainList = this.playerRepository</span>
+<span class="fc" id="L92">                    .findAllByBattleReference(currentBattle.get().getId().toString());</span>
+<span class="fc" id="L93">            Optional&lt;PlayerDomain&gt; attackingPlayer = playerDomainList.stream().filter(playerDomain -&gt; playerDomain.getState().equals(PlayerStateEnum.ATACANDO.name())).findFirst();</span>
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">            if(attackingPlayer.isPresent()){</span>
+<span class="fc" id="L95">                currentAttackingPlayerName = attackingPlayer.get().getName();</span>
+            }
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">        } else if (currentBattle.isEmpty()) {</span>
+<span class="fc" id="L98">            currentAttackingPlayerName = Strings.EMPTY;</span>
+        }
+<span class="fc" id="L100">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

@@ -1,0 +1,21 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+gimnasioPokemon,com.cenfotec.pokemongym.DTO,AttackInformation,0,24,0,0,0,5,0,7,0,7
+gimnasioPokemon,com.cenfotec.pokemongym.DTO,ResponseDTO,0,17,0,0,0,4,0,5,0,5
+gimnasioPokemon,com.cenfotec.pokemongym.DTO,BattleResponse,0,24,0,0,0,5,0,7,0,7
+gimnasioPokemon,com.cenfotec.pokemongym.utils,CommonUtils,0,12,0,0,0,2,0,2,0,2
+gimnasioPokemon,com.cenfotec.pokemongym.Domain,PlayerDomain,3,66,3,9,1,9,4,12,1,9
+gimnasioPokemon,com.cenfotec.pokemongym.Domain,BattleStateEnum,0,21,0,0,0,4,0,1,0,1
+gimnasioPokemon,com.cenfotec.pokemongym.Domain,BattleDomain,4,37,2,4,0,10,2,8,0,7
+gimnasioPokemon,com.cenfotec.pokemongym.Domain,PokemonDomain,6,39,0,0,2,6,2,11,2,11
+gimnasioPokemon,com.cenfotec.pokemongym.Domain,PlayerStateEnum,0,33,0,0,0,6,0,1,0,1
+gimnasioPokemon,com.cenfotec.pokemongym.controller,GlobalExceptionHandler,0,47,0,0,0,11,0,4,0,4
+gimnasioPokemon,com.cenfotec.pokemongym.controller,PokemonGymController,0,30,0,0,0,6,0,5,0,5
+gimnasioPokemon,com.cenfotec.pokemongym.model,Attack,0,17,0,0,0,4,0,5,0,5
+gimnasioPokemon,com.cenfotec.pokemongym.model,PokemonType,0,27,0,0,0,5,0,1,0,1
+gimnasioPokemon,com.cenfotec.pokemongym.model,PlayerInformation,0,24,0,0,0,5,0,7,0,7
+gimnasioPokemon,com.cenfotec.pokemongym.model,Pokemon,0,31,0,0,0,6,0,9,0,9
+gimnasioPokemon,com.cenfotec.pokemongym.service,PokemonGymService,91,636,32,34,26,153,29,20,1,14
+gimnasioPokemon,com.cenfotec.pokemongym.service,PlayerService,13,98,3,3,4,21,3,5,0,5
+gimnasioPokemon,com.cenfotec.pokemongym.service,PokemonGymService.new TypeReference() {...},0,6,0,0,0,1,0,1,0,1
+gimnasioPokemon,com.cenfotec.pokemongym.service,PokemonGymService.new TypeReference() {...},0,6,0,0,0,1,0,1,0,1
+gimnasioPokemon,com.cenfotec.pokemongym,BackgroundTaskService,10,171,6,12,2,39,6,13,0,10
